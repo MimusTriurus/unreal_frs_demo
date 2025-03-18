@@ -20,6 +20,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FFace> Faces;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bShowAgeGenderInfo{false};
+	UPROPERTY(BlueprintReadWrite)
+	bool bShowEmotionsRecognitionInfo{false};
+	UPROPERTY(BlueprintReadWrite)
+	bool bShowLandmarkDetectionInfo{false};
+	UPROPERTY(BlueprintReadWrite)
+	bool bShowHeadPoseEstimationInfo{false};
+
 protected:
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 		const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
