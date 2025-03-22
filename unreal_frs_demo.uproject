@@ -21,6 +21,10 @@
 		{
 			"Name": "UFRS",
 			"Enabled": true
+		},
+		{
+			"Name": "OpenCV",
+			"Enabled": true
 		}
 	]
 }

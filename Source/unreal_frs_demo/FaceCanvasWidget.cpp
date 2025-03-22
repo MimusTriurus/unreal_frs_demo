@@ -8,9 +8,14 @@
 #include "Rendering/DrawElements.h"
 #include "Util/ColorConstants.h"
 
-int32 UFaceCanvasWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
-                                     const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
-                                     int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 UFaceCanvasWidget::NativePaint(
+	const FPaintArgs& Args,
+	const FGeometry& AllottedGeometry,
+	const FSlateRect& MyCullingRect,
+	FSlateWindowElementList& OutDrawElements,
+	int32 LayerId,
+	const FWidgetStyle& InWidgetStyle,
+	bool bParentEnabled) const
 {
 	FVector2D WidgetSize = AllottedGeometry.GetLocalSize();
 

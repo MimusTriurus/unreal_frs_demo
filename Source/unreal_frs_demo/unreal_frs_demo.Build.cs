@@ -18,7 +18,8 @@ public class unreal_frs_demo : ModuleRules
 				"RHI",
 				"RenderCore",
 				"Engine",
-				"UMG"
+				"UMG",
+				"MediaAssets"
 			}
 			);
 

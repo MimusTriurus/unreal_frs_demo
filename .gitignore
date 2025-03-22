@@ -243,6 +243,6 @@ metadata.json
 # setup_git_user.bat and print_user_info.py temp file
 /Tools/utils/print_user_info_temp_output.txt
 
-/Plugins/
+/Plugins/UFRS/
 /Content/MetaHumans/
 /Content/english_large/
