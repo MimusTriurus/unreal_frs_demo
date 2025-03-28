@@ -191,7 +191,7 @@ void UCVUMat::ToRenderTarget(UTextureRenderTarget2D *&RenderTarget, bool resize)
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = static_cast<FTextureRenderTarget2DResource *>(RenderTarget->Resource);
+    auto resource = static_cast<FTextureRenderTarget2DResource *>(RenderTarget->GetResource());
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);
@@ -259,7 +259,7 @@ void UCVUMat::ToTexture(UTexture2D *&Texture, bool Resize) {
 
     size_t requiredDataSize{m.total() * targetElementSize};
     uint32_t requiredDataWrapType{CV_8UC(targetElementSize)};
-    auto resource = static_cast<FTexture2DResource *>(Texture->Resource);
+    auto resource = static_cast<FTexture2DResource *>(Texture->GetResource());
 
     detail::ConvertAndUpload(requiredDataSize, requiredConversion, m, requiredDataWrapType,
                              resource, targetElementSize, VideoSizeX, VideoSizeY);
@@ -315,24 +315,24 @@ void UCVUMat::ToVolumeTexture(UVolumeTexture *&VolumeTexture) {
     //VolumeTexture->bUAVCompatible = true;  // this requires the custom built engine
 
     // Set PlatformData parameters (create PlatformData if it doesn't exist)
-    if (!VolumeTexture->PlatformData) {
-      VolumeTexture->PlatformData = new FTexturePlatformData();
+    if (!VolumeTexture->GetPlatformData()) {
+      VolumeTexture->SetPlatformData(new FTexturePlatformData());
     }
 
-    VolumeTexture->PlatformData->PixelFormat = PF_G8;
-    VolumeTexture->PlatformData->SizeX = Dimensions.X;
-    VolumeTexture->PlatformData->SizeY = Dimensions.Y;
-    VolumeTexture->PlatformData->PackedData = Dimensions.Z;
+    VolumeTexture->GetPlatformData()->PixelFormat = PF_G8;
+    VolumeTexture->GetPlatformData()->SizeX = Dimensions.X;
+    VolumeTexture->GetPlatformData()->SizeY = Dimensions.Y;
+    VolumeTexture->GetPlatformData()->PackedData = Dimensions.Z;
 
     // If the texture already has MIPs in it, destroy and free them (Empty() calls destructors and
     // frees space).
-    if (VolumeTexture->PlatformData->Mips.Num() != 0) {
-      VolumeTexture->PlatformData->Mips.Empty();
+    if (VolumeTexture->GetPlatformData()->Mips.Num() != 0) {
+      VolumeTexture->GetPlatformData()->Mips.Empty();
     }
 
     mip = new FTexture2DMipMap();
     // Add the new MIP.
-    VolumeTexture->PlatformData->Mips.Add(mip);
+    VolumeTexture->GetPlatformData()->Mips.Add(mip);
 
     mip->SizeX = Dimensions.X;
     mip->SizeY = Dimensions.Y;
@@ -475,7 +475,7 @@ void UCVUMat::FromVolumeTexture(UVolumeTexture *Texture, UCVUMat *&Mat) {
     Mat = NewObject<UCVUMat>();
   }
 
-  if (!ensure(Texture->PlatformData != nullptr && Texture->PlatformData->Mips.Num() > 0)) {
+  if (!ensure(Texture->GetPlatformData() != nullptr && Texture->GetPlatformData()->Mips.Num() > 0)) {
     UE_LOG(OpenCV, Error,
            TEXT("Given texture does not have platform data or does not have mipmaps!"));
     return;
@@ -484,14 +484,14 @@ void UCVUMat::FromVolumeTexture(UVolumeTexture *Texture, UCVUMat *&Mat) {
   cv::Mat m = Mat->m.getMat(cv::ACCESS_RW);
 
   int cvFormat{-1};
-  if (Texture->PlatformData->PixelFormat == PF_G8 || Texture->PlatformData->PixelFormat == PF_A8) {
+  if (Texture->GetPlatformData()->PixelFormat == PF_G8 || Texture->GetPlatformData()->PixelFormat == PF_A8) {
     cvFormat = CV_8UC1;
-  } else if (Texture->PlatformData->PixelFormat == PF_B8G8R8A8 ||
-             Texture->PlatformData->PixelFormat == PF_R8G8B8A8) {
+  } else if (Texture->GetPlatformData()->PixelFormat == PF_B8G8R8A8 ||
+             Texture->GetPlatformData()->PixelFormat == PF_R8G8B8A8) {
     cvFormat = CV_8UC4;
-  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGB) {
+  } else if (Texture->GetPlatformData()->PixelFormat == PF_FloatRGB) {
     cvFormat = CV_32FC3;
-  } else if (Texture->PlatformData->PixelFormat == PF_FloatRGBA) {
+  } else if (Texture->GetPlatformData()->PixelFormat == PF_FloatRGBA) {
     cvFormat = CV_32FC4;
   }
 
@@ -500,7 +500,7 @@ void UCVUMat::FromVolumeTexture(UVolumeTexture *Texture, UCVUMat *&Mat) {
     return;
   }
 
-  auto &mip = Texture->PlatformData->Mips[0];
+  auto &mip = Texture->GetPlatformData()->Mips[0];
   void *memoryBuffer = mip.BulkData.Lock(EBulkDataLockFlags::LOCK_READ_WRITE);
 
   if (ensure(memoryBuffer != nullptr)) {
@@ -518,41 +518,3 @@ void UCVUMat::FromVolumeTexture(UVolumeTexture *Texture, UCVUMat *&Mat) {
 
   Mat->m = m.getUMat(cv::ACCESS_RW);
 }
-
-//
-// void CopyTextureToArray(UTexture2D *Texture, TArray<FColor> &Array) {
-//  struct FCopyBufferData {
-//    UTexture2D *Texture;
-//    TPromise<void> Promise;
-//    TArray<FColor> DestBuffer;
-//  };
-//  using FCommandDataPtr = TSharedPtr<FCopyBufferData, ESPMode::ThreadSafe>;
-//  FCommandDataPtr CommandData = MakeShared<FCopyBufferData, ESPMode::ThreadSafe>();
-//  CommandData->Texture = Texture;
-//  CommandData->DestBuffer.SetNum(Texture->GetSizeX() * Texture->GetSizeY());
-//
-//  auto Future = CommandData->Promise.GetFuture();
-//
-//  ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-//      CopyTextureToArray, FCommandDataPtr, CommandData, CommandData, {
-//        auto Texture2DRHI = CommandData->Texture->Resource->TextureRHI->GetTexture2D();
-//        uint32 DestPitch{0};
-//        uint8 *MappedTextureMemory = (uint8 *)RHILockTexture2D(
-//            Texture2DRHI, 0, EResourceLockMode::RLM_ReadOnly, DestPitch, false);
-//
-//        uint32 SizeX = CommandData->Texture->GetSizeX();
-//        uint32 SizeY = CommandData->Texture->GetSizeY();
-//
-//        FMemory::Memcpy(CommandData->DestBuffer.GetData(), MappedTextureMemory,
-//                        SizeX * SizeY * sizeof(FColor));
-//
-//        RHIUnlockTexture2D(Texture2DRHI, 0, false);
-//        // signal completion of the operation
-//        CommandData->Promise.SetValue();
-//      });
-//
-//  // wait until render thread operation completes
-//  Future.Get();
-//
-//  Array = std::move(CommandData->DestBuffer);
-//}
